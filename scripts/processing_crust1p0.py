@@ -9,16 +9,49 @@ class Crust1p0(object):
 			create_dict()
 		self.data = pickle.load(open('crust1p0.pkl', 'rb'))
 
-	def write_xyz(self):
-		for i in range(180):
-			lat = 89.0 - i + 0.5
-			for j in range(360):
-				lon = -179 + j -0.5
-				print(lon,lat,self.data['Bounds'][i,j,0])
+	def gen_global_map(self):
+		import matplotlib.pyplot as plt
+		fig, ax = plt.subplots()
+		cmap = plt.get_cmap('PiYG')
+		im = ax.pcolormesh(self.data['gridDataLat'],\
+			self.data['gridDataLon'][1],\
+			self.data['Bounds'][:,:,-1],\
+			cmap=cmap.N, clip=True)
+		fig.colorbar(im,ax=ax)
+		plt.show()
+
+
+	def plot_crust_at_point(self,ax,lat,lon):
+		bounds, Vp, Vs, Rho = self.point(lat,lon)
+		colors = ['b','c','gold','orange','darkorange','lightcoral','coral','red','brown']
+		legends = ['water','ice','upper sediments','middle sediments',\
+		'lower sediments','upper crystalline crust','middle crystalline crust',\
+		'lower crystalline crust', 'mantle']
+		str_fmt = 'v_s = {0:7.2f} km, v_p = {1:7.2f} km, v_s = {2:7.2f} tons/m^3'
+		for i,bound in enumerate(bounds):
+			ax.axhline(bound,0,100, c='k', lw=0.5)
+			if i == (len(bounds)-1):
+				ax.fill_between([0.0,100.0],bound,bound-10,\
+					color=colors[i],label=legends[i])
+				thick = True
+			else:
+				ax.fill_between([0.0,100.0],bound,bounds[i+1],\
+					color=colors[i],label=legends[i])
+				if abs(bound - bounds[i+1])>0.0:
+					thick = True
+				else:
+					thick = False
+			if thick:
+				string = str_fmt.format(Vs[i],Vp[i],Rho[i])
+				ax.text(50.0,bound,string,ha='center',va='top')
+		ax.set_yticks(ticks=bounds)
+		ax.set_ylabel('depth (km)')
+		ax.set_title('Crustal Layer at Lat {0:5.2f} Lon {1:5.2f}'.format(lat,lon))
+		ax.legend()
 
 	def point(self, lat, lon, string = False):
-		j = int(lon+180)
-		i = int(89.5-)
+		j = int(lon+179.5)
+		i = int(89.5-lat)
 		print(i,j)
 		if string == True:
 			fmt = '{0:12.3f} {1:10.3f} {2:10.3f} {3:10.3f}\n'
@@ -86,6 +119,7 @@ class Crust1p0(object):
 				data['Vs'][i,j,:] = Vs
 				data['Rho'][i,j,:] = Rho
 		return data
+
 def read_db(dir='./'):
 	VpID = open(dir+'crust1.vp','r')
 	VsID = open(dir+'crust1.vs','r')
@@ -113,9 +147,12 @@ def read_db(dir='./'):
 	BdID.close()
 	pickle.dump(CRUST1p0,open('crust1p0.pkl', 'wb'))
 if __name__ == '__main__':
+	import matplotlib.pyplot as plt
 	if not(os.path.isfile('crust1p0.pkl')):
 		read_db(dir='/media/sf_E_DRIVE/VB_FOLDERS/BitBucket/CRUST1p0/data/')
 	else:
 		read_db(dir='/media/sf_E_DRIVE/VB_FOLDERS/BitBucket/CRUST1p0/data/')
 	c = Crust1p0()
-	print(c.point(74.5,22.5, string=True))
+	fig, ax = plt.subplots()
+	c.plot_crust_at_point(ax,73.5,23.5)
+	plt.show()
