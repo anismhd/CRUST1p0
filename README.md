@@ -2,7 +2,7 @@
 
 This is a python wrap for Crust 1.0 data
 
-![sample_crustal thickness.png](/figs/)
+![png](/figs/sample_crustal thickness.png)
 *Global Crustal Thickness Distribution*
 
 ![Glbal Crustal Thickness Distribution](/figs/sample_ice thickness.png)
