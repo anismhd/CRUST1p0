@@ -7,7 +7,7 @@ class Crust1p0(object):
 	"""docstring for Crust1p0"""
 	def __init__(self, reread = False):
 		if reread:
-			create_dict()
+			read_db()
 		self.data = pickle.load(open('crust1p0.pkl', 'rb'))
 
 	def gen_regional_map(self,m,min_lat,max_lat,min_lon,max_lon,
@@ -20,6 +20,8 @@ class Crust1p0(object):
 		lon = np.arange(min_lon,max_lon+1,1.0)
 		lonXX,latYY = np.meshgrid(lon,lat)
 		crustal_thick = np.zeros(np.shape(lonXX))
+		ice_thick = np.zeros(np.shape(lonXX))
+		water_thick = np.zeros(np.shape(lonXX))
 		for i in range(np.shape(lonXX)[0]):
 			for j in range(np.shape(lonXX)[1]):
 				bounds, Vp, Vs, Rho = self.point(latYY[i,j],lonXX[i,j])
@@ -128,6 +130,6 @@ if __name__ == '__main__':
 	m.drawcountries()
 	m.drawcoastlines()
 	m.drawstates()
-	c = Crust1p0()
+	c = Crust1p0(reread = True)
 	c.gen_global_map(m,plt.cm.jet)
 	plt.savefig('sample.pdf')
