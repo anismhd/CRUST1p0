@@ -2,13 +2,25 @@ import numpy as np
 import os
 import pickle
 import matplotlib.pyplot as plt
+from distutils.sysconfig import get_python_lib
+import matplotlib as mpl
+
+
 
 class Crust1p0(object):
 	"""docstring for Crust1p0"""
 	def __init__(self, reread = False):
 		if reread:
 			read_db()
-		self.data = pickle.load(open('crust1p0.pkl', 'rb'))
+		self.data = pickle.load(open('/home/anis/GitHub/CRUST1p0/crust1p0.pkl', 'rb'))
+
+	def gen_raster(self):
+		lon = np.arange(-89.5,89.5+1,1.0)
+		lat = np.arange(-179.5,179.5+1,1.0)
+		lonXX,latYY = np.meshgrid(lon,lat)
+		for i in range(np.shape(lonXX)[0]):
+			for j in range(np.shape(lonXX)[1]):
+				bounds, Vp, Vs, Rho = self.point(latYY[i,j],lonXX[i,j])
 
 	def gen_regional_map(self,m,min_lat,max_lat,min_lon,max_lon,\
 		map = 'crustal_thickness'):
@@ -90,7 +102,7 @@ class Crust1p0(object):
 		legends = ['water','ice','upper sediments','middle sediments',\
 		'lower sediments','upper crystalline crust','middle crystalline crust',\
 		'lower crystalline crust', 'mantle']
-		str_fmt = 'v_s = {0:7.2f} km, v_p = {1:7.2f} km, v_s = {2:7.2f} tons/m^3'
+		str_fmt = r'v_s = {0:7.2f} km, v_p = {1:7.2f} km, v_s = {2:7.2f} tons/m^3'
 		for i,bound in enumerate(bounds):
 			ax.axhline(bound,0,100, c='k', lw=0.5)
 			if i == (len(bounds)-1):
@@ -111,6 +123,48 @@ class Crust1p0(object):
 		ax.set_ylabel('depth (km)')
 		ax.set_title('Crustal Layer at Lat {0:5.2f} Lon {1:5.2f}'.format(lat,lon))
 		ax.legend()
+
+	def cross_section(self,point1,point2,dL=0.05,size=(15,5)):
+		"""
+		para point1: (lon,lat)
+		type point1: list
+		para point2: (lon,lat)
+		type point2: list
+		"""
+		fig = plt.figure(figsize=size)
+		ax = plt.gca()
+		fake_length = np.sqrt(\
+			(point2[1]-point1[1])**2 + (point2[0]-point1[0])**2 )
+		n = int(np.ceil(fake_length/dL))
+		dL = fake_length/n
+		slope = (np.array(point2) - np.array(point1))/fake_length
+		xaxis = np.linspace(0,fake_length,n)
+		cmap = mpl.cm.get_cmap('viridis')
+		norm = mpl.colors.Normalize(vmin=0, vmax=10)
+		for i in range(n+1):
+			loc = point1 + (i+0.5)*dL*slope
+			bounds, Vp, Vs, Rho = self.point(loc[0],loc[1])
+			plt.plot([i*dL,(i+1)*dL],[bounds[0],bounds[0]], c='k', lw=0.5)
+			plt.plot([i*dL,(i+1)*dL],[bounds[1],bounds[1]], c='k', lw=0.5)
+			plt.plot([i*dL,(i+1)*dL],[bounds[2],bounds[2]], c='k', lw=0.5)
+			plt.plot([i*dL,(i+1)*dL],[bounds[3],bounds[3]], c='k', lw=0.5)
+			plt.plot([i*dL,(i+1)*dL],[bounds[4],bounds[4]], c='k', lw=0.5)
+			plt.plot([i*dL,(i+1)*dL],[bounds[5],bounds[5]], c='k', lw=0.5)
+			plt.plot([i*dL,(i+1)*dL],[bounds[6],bounds[6]], c='k', lw=0.5)
+			plt.plot([i*dL,(i+1)*dL],[bounds[7],bounds[7]], c='k', lw=0.5)
+			plt.plot([i*dL,(i+1)*dL],[bounds[8],bounds[8]], c='k', lw=0.5)
+			plt.fill_between([i*dL,(i+1)*dL],bounds[0],bounds[1],color='b')
+			plt.fill_between([i*dL,(i+1)*dL],bounds[1],bounds[2],color='c')
+			plt.fill_between([i*dL,(i+1)*dL],bounds[2],bounds[3],color=cmap(norm(Vs[2])))
+			plt.fill_between([i*dL,(i+1)*dL],bounds[3],bounds[4],color=cmap(norm(Vs[3])))
+			plt.fill_between([i*dL,(i+1)*dL],bounds[4],bounds[5],color=cmap(norm(Vs[4])))
+			plt.fill_between([i*dL,(i+1)*dL],bounds[5],bounds[6],color=cmap(norm(Vs[5])))
+			plt.fill_between([i*dL,(i+1)*dL],bounds[6],bounds[7],color=cmap(norm(Vs[6])))
+			plt.fill_between([i*dL,(i+1)*dL],bounds[7],bounds[8],color=cmap(norm(Vs[7])))
+			plt.fill_between([i*dL,(i+1)*dL],bounds[8],bounds[8]-10,color=cmap(norm(Vs[8])))
+		mpl.colorbar.ColorbarBase(ax=plt.axes([0.92, 0.1, 0.01, 0.8]),\
+			cmap=cmap,norm=norm)
+		return fig
 
 	def point(self, lat, lon, string = False):
 		j = int(lon+179.5)
@@ -162,8 +216,6 @@ def read_db(dir='./data/'):
 if __name__ == '__main__':
 	if not(os.path.isfile('crust1p0.pkl')):
 		read_db()
-	else:
-		read_db(dir='./../data/')
 	c = Crust1p0()
 	fig, ax = plt.subplots()
 	c.plot_crust_at_point(ax,73.5,23.5)
